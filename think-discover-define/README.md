@@ -1,6 +1,43 @@
-# think-discover-define
+# /think-discover-define
 
 A Claude Code skill for spec-driven feature development. Front-loads thinking before code — guided discovery, formal-methods-flavored contracts, and a fully traceable pipeline from requirement to test.
+
+---
+
+## Installation
+
+### Via Plugin Marketplace (Recommended)
+
+Install directly from Claude Code in two commands:
+
+```
+/plugin marketplace add https://github.com/benedekvarga/claude-code-toolkit
+/plugin install bens-toolkit@think-discover-define
+```
+
+Then use it by typing `/think-discover-define` in Claude Code.
+
+---
+
+## Usage
+
+### Start a new feature
+
+```
+/think-discover-define
+```
+
+> "I want to add rate limiting to the API"
+
+The skill will:
+
+1. Silently orient itself — reads the codebase to understand existing structure before asking anything
+2. Ask discovery questions across five layers: scope, behavior, edge cases, constraints, and testing approach
+3. Generate a formal spec with EARS requirements and pre/post contracts
+4. Produce an implementation plan with tasks mapped to requirements
+5. Derive test cases directly from the spec
+
+Each phase ends at a checkpoint — Claude stops and waits for your approval before continuing.
 
 ---
 
