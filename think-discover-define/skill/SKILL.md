@@ -1,11 +1,11 @@
 ---
-name: spec-driven-dev
+name: think-discover-define
 description: Spec-driven feature development for any codebase or tech stack. Guides the developer through interactive discovery, generates a formal-ish spec with EARS requirements and state contracts, derives an implementation plan, and produces a test strategy. Use this skill whenever the developer wants to start a new feature, modify complex behavior, scope a bug fix, plan an implementation, or write any kind of feature spec — even if they don't say "spec" explicitly. Also trigger when the developer says things like "let's think through this before coding", "scope this out", "what should the plan be", or asks for requirements, acceptance criteria, or a contract before implementation.
 allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
 metadata:
   version: 2.0.0
   category: development-workflow
-  tags: sdd, spec-driven, feature-development
+  tags: think-discover-define, spec-driven-development, sdd, formal-methods
 ---
 
 # Spec-Driven Feature Development
