@@ -6,8 +6,8 @@
     "name": "Benedek Varga",
     "url": "https://github.com/benedekvarga"
   },
-  "homepage": "https://github.com/benedekvarga/claude-code-toolkit",
-  "repository": "https://github.com/benedekvarga/claude-code-toolkit",
+  "homepage": "https://github.com/benedekvarga/bens-claude-code-toolkit",
+  "repository": "https://github.com/benedekvarga/bens-claude-code-toolkit",
   "license": "MIT",
   "keywords": ["spec-driven-development", "sdd", "formal-methods", "planning", "discovery"]
 }

@@ -11,8 +11,8 @@ A Claude Code skill for spec-driven feature development. Front-loads thinking be
 Install directly from Claude Code in two commands:
 
 ```
-/plugin marketplace add https://github.com/benedekvarga/claude-code-toolkit
-/plugin install bens-toolkit@think-discover-define
+/plugin marketplace add https://github.com/benedekvarga/bens-claude-code-toolkit
+/plugin install think-discover-define@bens-claude-code-toolkit
 ```
 
 Then use it by typing `/think-discover-define` in Claude Code.
