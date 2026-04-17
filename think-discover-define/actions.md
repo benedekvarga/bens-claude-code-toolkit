@@ -1,3 +1,0 @@
-- [ ] make the questions interactive
-- [ ] add order numbers to the generated files to reflect which step was
-- [ ] Turn steps into agents maybe even with personas (Claude Agent SDK)
