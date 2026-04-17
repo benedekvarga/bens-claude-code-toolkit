@@ -1,5 +1,5 @@
 {
-  "name": "bens-toolkit",
+  "name": "claude-code-toolkit",
   "owner": {
     "name": "Ben Varga",
     "url": "https://github.com/benedekvarga"
@@ -9,7 +9,7 @@
       "name": "think-discover-define",
       "source": "./think-discover-define",
       "description": "Spec-driven, structured feature development skill: asks discovery questions, generates a formal spec with EARS requirements and state contracts, derives an implementation plan, and produces a test strategy.",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": {
         "name": "Ben Varga",
         "url": "https://github.com/benedekvarga"
