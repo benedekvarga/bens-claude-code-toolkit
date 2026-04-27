@@ -1,13 +1,15 @@
-# Test Strategy: Add Comment to Task
+# Validation Strategy: Add Comment to Task
 
 > Derived from: `SPEC.md`
-> Every test traces to a spec requirement (R#) or invariant (INV-#).
+> Every validation item traces to a spec requirement (R#) or invariant (INV-#).
 > **Note:** Test naming below uses `snake_case`. Adapt casing to your
 > project's convention (camelCase, PascalCase, etc.).
 
 ---
 
-## Naming Convention
+## Validation Naming Convention
+
+Each validation item gets a stable `V-#` ID.
 
 ```
 test_[subject]_[condition]_[expectedOutcome]
@@ -20,123 +22,137 @@ test_[subject]_[condition]_[expectedOutcome]
 
 ---
 
-## Test Cases
+## Validation Items
 
-### Comment Submission — Happy Path
+### Executable Tests
 
-**TC-1:** `test_submit_validComment_appearsInList` → R1
-- **Setup:** Task detail loaded with existing comments
-- **Action:** Submit comment with text "Looks good"
-- **Assert:** Comment appears in list with correct author and text
+**V-1:** Submit valid comment appears in list → R1
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_validComment_appearsInList`
+- **Method:** Load task detail with existing comments and submit "Looks good".
+- **Pass criteria:** Comment appears in the list with the correct author and text.
 
-**TC-2:** `test_submit_success_clearsInput` → R2
-- **Setup:** Submit a comment, API returns success with assigned ID
-- **Action:** Await API response
-- **Assert:** Input field is empty; comment in list has server-assigned ID
+**V-2:** Successful submit clears input and persists server ID → R2
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_success_clearsInput`
+- **Method:** Submit a comment and await a successful API response with an assigned ID.
+- **Pass criteria:** Input field is empty and the comment in the list has the server-assigned ID.
 
-**TC-3:** `test_loadComments_displaysChronologically` → R3, INV-3
-- **Setup:** API returns 3 comments with timestamps [t1, t3, t2]
-- **Action:** Load task detail
-- **Assert:** Comments displayed in order [t1, t2, t3] (oldest first)
+**V-3:** Loaded comments display chronologically → R3, INV-3
+- **Type:** Executable test
+- **Concrete artifact:** `test_loadComments_displaysChronologically`
+- **Method:** Mock 3 comments with timestamps [t1, t3, t2] and load task detail.
+- **Pass criteria:** Comments render in order [t1, t2, t3] (oldest first).
 
-### Input Validation
+**V-4:** Empty submit shows validation → R4
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_emptyText_showsValidation`
+- **Method:** Attempt to send with an empty input field.
+- **Pass criteria:** No API call is made and an inline validation message is displayed.
 
-**TC-4:** `test_submit_emptyText_showsValidation` → R4
-- **Setup:** Input field is empty
-- **Action:** Tap/click "Send"
-- **Assert:** No API call made; inline validation message displayed
+**V-5:** Whitespace-only submit shows validation → R4
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_whitespaceOnly_showsValidation`
+- **Method:** Attempt to send with input containing only spaces/newlines.
+- **Pass criteria:** No API call is made and an inline validation message is displayed.
 
-**TC-5:** `test_submit_whitespaceOnly_showsValidation` → R4
-- **Setup:** Input contains only spaces/newlines
-- **Action:** Tap/click "Send"
-- **Assert:** No API call made; inline validation message displayed
+**V-6:** Network error on submit shows retry → R5, INV-2
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_networkError_showsRetry`
+- **Method:** Configure the submit API to return a network error, then submit a valid comment.
+- **Pass criteria:** The failed comment shows an error indicator with a retry action, and the user's text is preserved.
 
-**TC-6:** `test_input_nearLimit_showsCharCounter` → R10
-- **Setup:** Input has 1801 characters (within 200 of 2000 limit)
-- **Action:** Observe input field
-- **Assert:** Character counter is visible showing remaining characters
+**V-7:** Retry resends failed comment → R5
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_retry_resendsComment`
+- **Method:** Start from a `submitError` state and trigger Retry.
+- **Pass criteria:** Comment transitions back to "sending" and the API is called again.
 
-**TC-7:** `test_input_atLimit_preventsMoreText` → R10
-- **Setup:** Input has exactly 2000 characters
-- **Action:** Attempt to type another character
-- **Assert:** Input does not accept additional characters (or counter shows 0 remaining)
+**V-8:** Error states disable input or show section retry affordance → R6, R7, R8
+- **Type:** Executable test
+- **Concrete artifact:** `test_errorStates_disableCommenting`
+- **Method:** Trigger submit-time 404, submit-time 403, and load-time network failure scenarios.
+- **Pass criteria:** 404 and 403 disable further input with the correct message; load-time network failure shows inline comments-section error with retry while preserving task-detail usability.
 
-### Submission — Error Handling
+**V-9:** In-flight submit shows sending state and disables send button → R9
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_inFlight_disablesSendButton`
+- **Method:** Hold the submit API open after a valid comment is sent.
+- **Pass criteria:** Send button is disabled and the pending comment is shown as "sending".
 
-**TC-8:** `test_submit_networkError_showsRetry` → R5, INV-2
-- **Setup:** API is configured to return a network error
-- **Action:** Submit a valid comment
-- **Assert:** Comment shows error indicator with "Retry" action; user's text is preserved
+**V-10:** Comment list loading shows section loading indicator → R10
+- **Type:** Executable test
+- **Concrete artifact:** `test_loadComments_showsLoadingIndicator`
+- **Method:** Hold the comments fetch API open during task-detail load.
+- **Pass criteria:** Loading indicator is visible in the comments area.
 
-**TC-9:** `test_submit_retry_resendsComment` → R5
-- **Setup:** Comment is in `submitError` state
-- **Action:** Tap/click "Retry"
-- **Assert:** Comment transitions to "sending" state; API is called again
+**V-11:** Submit while loading is blocked → Impossible Transitions
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_whileLoading_isBlocked`
+- **Method:** Attempt to submit while the comments section is still in `loading`.
+- **Pass criteria:** Submission does not occur and the input is disabled or not yet visible.
 
-**TC-10:** `test_submit_taskDeleted_disablesInput` → R6
-- **Setup:** API returns 404 (task not found)
-- **Action:** Submit a comment
-- **Assert:** State transitions to `disabled`; message indicates task was deleted; input is disabled
+**V-12:** Large comment set paginates or lazy loads → R12
+- **Type:** Executable test
+- **Concrete artifact:** `test_commentsOverFifty_loadIncrementally`
+- **Method:** Seed more than 50 comments and load the task detail.
+- **Pass criteria:** Initial render shows only the first slice and exposes a working load-more or lazy-load mechanism.
 
-**TC-11:** `test_submit_noPermission_disablesInput` → R7
-- **Setup:** API returns 403 (forbidden)
-- **Action:** Submit a comment
-- **Assert:** State transitions to `disabled`; message indicates no access; input is disabled
+**V-14:** Near-limit input shows character counter → R11
+- **Type:** Executable test
+- **Concrete artifact:** `test_input_nearLimit_showsCharCounter`
+- **Method:** Enter 1801 characters into the comment input.
+- **Pass criteria:** Character counter is visible and shows the remaining count.
 
-### State-Dependent Behavior
+**V-15:** Input at limit rejects more text → R11
+- **Type:** Executable test
+- **Concrete artifact:** `test_input_atLimit_preventsMoreText`
+- **Method:** Enter exactly 2000 characters, then attempt one more.
+- **Pass criteria:** Additional input is rejected or the UI clearly prevents overflow at the limit.
 
-**TC-12:** `test_submit_inFlight_disablesSendButton` → R8
-- **Setup:** Comment submission is in progress (API not yet responded)
-- **Action:** Observe send button
-- **Assert:** Send button is disabled; "sending" indicator is visible on the comment
+**V-16:** Failed submit preserves input text → INV-2
+- **Type:** Executable test
+- **Concrete artifact:** `test_failedSubmit_preservesInputText`
+- **Method:** Type "Important update", force submission failure, then inspect the draft state.
+- **Pass criteria:** User text is still available for retry without retyping.
 
-**TC-13:** `test_loadComments_showsLoadingIndicator` → R9
-- **Setup:** API call for comments is in progress
-- **Action:** Observe comments section
-- **Assert:** Loading indicator visible in comments area; rest of task detail is not blocked
+**V-17:** Confirmed comment survives reload → INV-1
+- **Type:** Executable test
+- **Concrete artifact:** `test_confirmedComment_persistsAfterReload`
+- **Method:** Submit a comment successfully, then reload the comment list.
+- **Pass criteria:** Confirmed comment remains present after reload.
 
-### State Machine Integrity
+**V-18:** Submit while disabled is blocked → Impossible Transitions
+- **Type:** Executable test
+- **Concrete artifact:** `test_submit_whileDisabled_isBlocked`
+- **Method:** Attempt to submit while the feature state is `disabled`.
+- **Pass criteria:** Submission does not occur and the input remains disabled.
 
-**TC-14:** `test_submit_whileLoading_isBlocked` → Impossible Transitions
-- **Setup:** Comment list is still loading (state: `loading`)
-- **Action:** Attempt to submit a comment
-- **Assert:** Submission does not occur; send button is disabled or input is not yet visible
+### Audit / Manual Checks
 
-**TC-15:** `test_submit_whileDisabled_isBlocked` → Impossible Transitions
-- **Setup:** State is `disabled` (task deleted or no permission)
-- **Action:** Attempt to submit a comment
-- **Assert:** Submission does not occur; input field is disabled
-
-### Invariants
-
-**TC-16:** `test_confirmedComment_persistsAfterReload` → INV-1
-- **Setup:** Submit a comment, API confirms
-- **Action:** Trigger a reload of the comment list (simulating navigation away and back)
-- **Assert:** Comment is still present in the list
-
-**TC-17:** `test_failedSubmit_preservesInputText` → INV-2
-- **Setup:** Type "Important update" in input. Submission fails.
-- **Action:** Check input field content
-- **Assert:** Input still contains "Important update"
+**V-13:** Comments loading does not block the rest of task detail → R10
+- **Type:** Audit/manual check
+- **Concrete artifact:** `none`
+- **Method:** Throttle comments loading in a running app, then interact with non-comments task-detail controls while the comments section is loading and while it is in load-error state.
+- **Pass criteria:** The rest of the task detail remains usable and visibly separate from comments-section loading/error treatment.
 
 ---
 
-## Explicitly NOT Tested
+## Explicitly NOT Validated
 
 - Visual layout, spacing, or typography of comment items (design, not logic)
 - Exact timestamp formatting (covered by the project's date formatting utility tests)
 - API client HTTP handling (tested in its own module)
-- Scroll behavior and auto-scroll (manual QA, depends on platform specifics)
-- Pagination edge cases beyond "it loads more" (T11 implementation may warrant additional tests)
+- Pagination micro-optimizations beyond the contractual "supports load more/lazy loading" behavior
 
 ---
 
-## Test File Placement
+## Validation Placement
 
-Place tests alongside the state management / business logic for comments.
+Place executable tests alongside the state management / business logic for comments.
 Match existing test patterns in the codebase for:
 - Mock setup (API mocks, state initialization)
 - Async test patterns (how the project handles async assertions)
 - Fixture data (how the project creates test data)
 
-Check the codebase for existing patterns before writing tests.
+Document manual validation `V-13` in the implementation PR checklist or QA note.

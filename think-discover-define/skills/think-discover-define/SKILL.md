@@ -1,9 +1,9 @@
 ---
 name: think-discover-define
-description: Spec-driven feature development for any codebase or tech stack. Guides the developer through interactive discovery, generates a formal-ish spec with EARS requirements and state contracts, derives an implementation plan, and produces a test strategy. Use this skill whenever the developer wants to start a new feature, modify complex behavior, scope a bug fix, plan an implementation, or write any kind of feature spec — even if they don't say "spec" explicitly. Also trigger when the developer says things like "let's think through this before coding", "scope this out", "what should the plan be", or asks for requirements, acceptance criteria, or a contract before implementation.
-allowed-tools: Read, Write, Edit, Bash, AskUserQuestion
+description: Spec-driven feature development. Guides the developer through interactive discovery, generates a formal-ish spec with EARS requirements and state contracts, derives an implementation plan, and produces a validation strategy. Invoke manually with /think-discover-define or /spec when starting a new feature, modifying complex behavior, scoping a bug fix, or planning an implementation.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 metadata:
-  version: 1.0.1
+  version: 2.2.0
   category: development-workflow
   tags: think-discover-define, spec-driven-development, sdd, formal-methods
 ---
@@ -15,609 +15,223 @@ feature development. Works with any language, framework, or architecture.
 
 ## Philosophy
 
-**Spec is the contract.** Not a waterfall document. Not a rigid pipeline.
-A lightweight, living reference that both you and Claude Code point at
-when things drift.
+**Spec is the contract.** A lightweight, living reference that both you and
+the developer point at when things drift. Not a waterfall document.
 
 **Discovery before implementation.** The biggest source of wasted cycles is
-starting to code before requirements are clear. This skill front-loads the
-thinking through guided questions.
+coding before requirements are clear. This skill front-loads the thinking.
+
+**Don't ask what you can discover.** Before asking the developer any question,
+check whether the codebase already answers it. This is a continuous rule —
+not a one-time pre-phase. Read code during discovery, not just before it.
+
+**Every question carries a recommended answer.** Based on codebase analysis,
+propose what you think the answer is. The developer confirms or overrides.
+This reduces cognitive load while keeping thoroughness.
 
 **Formal-methods-flavored, not formal-methods-heavy.** We borrow pre/post
-conditions, state invariants, and EARS notation from the formal world without
-requiring mathematical notation or verification tooling.
+conditions, state invariants, and EARS notation without requiring mathematical
+notation or verification tooling.
 
 **Micro-spec, not mega-spec.** One spec per feature or change. Small, focused,
-scoped to one shippable unit. Not a living document for the whole app.
+scoped to one shippable unit.
 
-**Specs are persistent, not disposable.** Specs remain valuable after the feature
-ships. They serve as compressed context for future LLM sessions, onboarding
-references, and regression investigation aids. To keep them trustworthy, every
-spec carries a **file manifest** — a list of the source files and sections it
-references. Before any phase begins, the skill checks whether manifested files
-have changed since the spec's last update. If drift is detected, the skill flags
-the stale sections and prompts the developer to review and update before proceeding.
-
-**Stack-agnostic with automatic context.** The spec describes behavior, not
-implementation. Tech stack details surface in the Plan phase, not the Spec phase.
-The same spec format works whether you're building in Swift, TypeScript, Kotlin,
-Rust, or anything else. However, the skill automatically discovers and synthesizes
-project documents (CLAUDE.md, .cursorrules, architecture docs, etc.) so it
-understands the project's conventions without the developer having to explain them.
-
----
-
-## When to Use This Skill
-
-| Change Type | What to Do |
-|-------------|-----------|
-| **Trivial** (rename, typo, config tweak) | Skip this skill entirely. Just do it. |
-| **Everything else** | Run the full four-phase pipeline. |
-
-Seemingly small bugs can have deep root causes. A single-function change can ripple
-across modules. Always run the full pipeline — the overhead is low and the
-documentation pays for itself later (specs are persistent, not throwaway). The
-developer controls what to execute and when, but the skill always produces the
-complete set of outputs.
-
-If a task feels too large for a single spec, it should have been broken down at the
-ticket/story stage. This skill specs one shippable unit at a time.
-
----
-
-## Smart Document Discovery (runs before every phase)
-
-Before each phase, scan the project for relevant documents and synthesize them
-into a context summary. This is NOT a one-time step — it runs before every phase
-because different phases need different documents (e.g., testing docs are most
-relevant before Phase 4, architecture docs before Phase 3).
-
-**Priority: reuse before re-scanning.** Before running a fresh scan, ALWAYS check
-the documents already generated by this skill (ORIENT, DISCOVER, SPEC, PLAN, TEST).
-These contain synthesized context from prior phases and should be the first source
-of truth. Only scan the project for additional documents not already captured. This
-saves time and tokens — avoid re-discovering what was already synthesized.
-
-### Discovery Scan
-
-Search for project documents using a broad scan — do NOT assume a fixed folder
-name like `specs/`. Treat every `.md` file in the project as a potential document
-worth checking. Specifically look for:
-
-- **LLM context files:** `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`,
-  `AGENTS.md`, `.ai/`, `.prompts/`, or similar
-- **Architecture docs:** `ARCHITECTURE.md`, `docs/architecture*`, `design/`, `ADR/`,
-  `decisions/`, or any architectural decision records
-- **API docs:** OpenAPI/Swagger specs, `API.md`, `docs/api*`
-- **Testing docs:** `TESTING.md`, `docs/testing*`, `test/README*`, test strategy files
-- **Existing specs:** Search for markdown files containing EARS-style requirements,
-  acceptance criteria, or spec-like structure — scan `docs/`, `specs/`, `design/`,
-  `.specs/`, `documentation/`, and root-level markdown files
-- **Project config:** `package.json`, `Cargo.toml`, `pyproject.toml`, `build.gradle`,
-  etc. for tech stack signals
-- **README files:** Root README and module-level READMEs
-- **Any other `.md` files:** Every markdown file in the project is a potential
-  document — scan broadly and assess relevance based on content, not just name
-
-### Synthesis
-
-For each phase, produce a short **Project Context Summary** that includes only the
-documents relevant to that phase. Each excerpt MUST include the full file path so
-the LLM knows where to go deeper:
-
-```markdown
-## Project Context (synthesized for Phase N)
-
-### Tech Stack (from `./package.json`, `./CLAUDE.md`)
-- TypeScript / Next.js 14 / App Router
-- Zustand for state, Tailwind for styling
-- Jest + React Testing Library for tests
-
-### Conventions (from `./CLAUDE.md` lines 12-45, `./docs/ARCHITECTURE.md`)
-- Feature modules in `src/features/<name>/`
-- Co-located tests in `__tests__/` subdirectories
-- API clients in `src/api/` with typed responses
-
-### Testing Strategy (from `./docs/TESTING.md`, only included for Phase 4)
-- Unit tests for all business logic, integration tests for API layer
-- No snapshot tests, prefer behavioral assertions
-- Mock API calls with msw
-```
-
-If no project documents are found, note this and proceed with information gathered
-from code analysis alone.
+**Stack-agnostic spec, stack-specific plan.** The spec describes behavior,
+not implementation. Tech stack details surface in the Plan phase.
 
 ---
 
 ## Pipeline Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│  /spec                                                                           │
-│                                                                                  │
-│  Phase 0: ORIENT  ►  Phase 1: DISCOVER  ►  Phase 2: SPECIFY  ►  Phase 3: PLAN  │
-│  (silent recon)      (interactive Q&A)     (generate spec)      (derive tasks)  │
-│                                                                                  │
-│                      ►  Phase 4: TEST                                            │
-│                         (derive tests)                                           │
-│                                                                                  │
-│  Outputs:                                                                        │
-│  Phase 0: <slug>-ORIENT.md       Phase 1: <slug>-DISCOVER.md                    │
-│  Phase 2: <slug>-SPEC.md         Phase 3: <slug>-PLAN.md                        │
-│  Phase 4: <slug>-TEST.md                                                        │
-│                                                                                  │
-│  Smart Document Discovery runs before EVERY phase.                               │
-│  Each phase has a CHECKPOINT where the developer reviews                         │
-│  and approves before proceeding. Looping back is expected.                       │
-└──────────────────────────────────────────────────────────────────────────────────┘
+01-SPEC  ──►  02-PLAN  ──►  03-TEST
+(discover      (derive        (derive
+ + specify)     tasks)         tests)
+
+Each phase:
+  read reference ──► explore codebase ──► draft artifact
+  ──► present to developer ──► refine interactively ──► save on approval
 ```
 
-**Critical rule:** Never auto-advance without developer approval. After each
-phase, stop and ask: "Does this look right? Want to adjust anything?"
+**Three phases. Three artifacts. One checkpoint per phase.**
+
+Never auto-advance without developer approval. After each phase, present the
+draft and refine interactively until the developer confirms.
 
 ---
 
-## Phase 0: ORIENT
+## Phase 01-SPEC
 
-Before asking the developer a single question, scan the project to build
-context. This prevents asking questions the code or docs already answer.
-
-### Step 1: Smart Document Discovery
-
-Run the Smart Document Discovery scan (see section above). For Phase 0,
-focus on LLM context files, architecture docs, and project config. Synthesize
-findings into the Project Context Summary with full file paths.
-
-### Step 2: Identify the Area
-
-Based on the developer's initial message, locate the relevant files, modules,
-or directories. Read key files (entry points, models, existing tests).
-
-### Step 3: Detect Patterns (cross-reference with docs)
-
-Note the project's conventions: naming, architecture style, test framework,
-existing state management, error handling patterns. **Cross-reference what you
-find in code with what the project documents say the patterns should be.** This
-catches drift between documented conventions and actual practice — valuable
-context for later phases.
-
-### Step 4: Check for Existing Specs
-
-Search broadly for prior specs or design documents — do NOT assume a `specs/`
-folder. Scan `docs/`, `design/`, `documentation/`, `.specs/`, `ADR/`, and
-root-level markdown for anything with EARS requirements, acceptance criteria,
-or spec-like structure. If found, read them to understand precedent and check
-their file manifests for staleness.
-
-### Step 5: Build File Manifest Baseline
-
-Record the current state (last-modified timestamps or git hashes) of the key
-files identified in Steps 2-4. This becomes the baseline for the spec's file
-manifest, used later to detect staleness.
-
-### Phase 0 Output: `<feature-slug>-ORIENT.md`
-
-Save the Phase 0 findings in the spec folder (see File Naming & Output Location
-below). Include: Project Context Summary, identified area, detected patterns,
-existing specs found, and the file manifest baseline.
-
-Use Phase 0 findings to skip obvious discovery questions ("What tech stack?"
-when you can see it's a Next.js app) and to make Layer 2+ questions more
-specific ("I see you use Zustand for state — do you want the comment state
-in the existing task store or a new one?").
-
----
-
-## Phase 1: DISCOVER
-
-### Purpose
-Surface requirements, edge cases, and constraints through adaptive questioning.
-The developer should never need to write a perfect prompt from scratch — the
-questionnaire pulls out what's needed.
+Combines orientation, discovery, and specification into one phase. Produces a
+single SPEC document with context, discovery summary, formal requirements, and
+the appropriate state-model tier (none, lightweight, or full).
 
 ### Execution
 
-Run the discovery as an interactive conversation. Ask questions in layers.
-**Do not dump all questions at once.** Ask Layer 1, wait for answers, then
-adapt Layer 2 based on what was said.
+1. **Load phase instructions:**
+   Read `${CLAUDE_SKILL_DIR}/references/01-SPEC.md` for detailed guidance on
+   discovery, EARS notation, state models, and contracts.
 
-#### Layer 1 — Context & Scope (always ask)
+2. **Scan the codebase (read-only):**
+   Search for project docs (CLAUDE.md, architecture docs, testing docs, API
+   specs, READMEs, config files). Identify the relevant modules, files, and
+   patterns for the feature area. Synthesize into a Project Context summary.
 
-1. **What project and tech stack?** — Language, framework, architecture pattern.
-   Only ask if not obvious from the codebase or conversation context.
-2. **What area does this touch?** — Which module, screen, service, or domain?
-   Are there existing files or patterns to follow?
-3. **What type of change?** — New feature | Modification of existing behavior |
-   Bug fix | Refactor with behavior change
-4. **One-sentence user goal** — "The user can ___" or "The system can ___"
-   (force a single sentence)
-5. **API surface** — Any API calls, mutations, endpoints, or external services
-   involved? Existing or new?
+3. **Run decision-tree discovery:**
+   Walk through the feature's decision tree, exploring each branch depth-first.
+   For every question:
+   - Propose a recommended answer based on what you found in the codebase
+   - Use `AskUserQuestion` for structured choices where applicable
+   - Ask one question at a time — resolve each branch before moving on
+   - If the codebase answers a question, state the answer and move on
+   - Push back on vague or incomplete answers — probe deeper
 
-#### Layer 2 — Behavior & Flow (always ask, iterate to refine)
+   Cover all core topics: scope, user goal, entry/exit points, happy path,
+   error states, data dependencies, async behavior, anti-requirements,
+   constraints, and validation intent. The order follows the feature's natural
+   shape, not a rigid template.
 
-6. **Entry points** — How does the user/caller reach this? (navigation, URL,
-   API call, event, CLI command, etc.)
-7. **Happy path** — Walk me through the ideal flow, step by step.
-8. **Exit points** — What happens when the interaction is complete?
-   Where does the user/caller go or what state is the system in?
-9. **Data dependencies** — What data must exist before this works?
-   What data does it create, modify, or delete?
+4. **Draft the complete SPEC:**
+   Read `${CLAUDE_SKILL_DIR}/references/SPEC_TEMPLATE.md` for the format.
+   Read `${CLAUDE_SKILL_DIR}/references/EXAMPLE_SPEC.md` for a worked example.
+   Fill every section from discovery answers.
 
-**Iteration rule:** Do NOT accept the first answers at face value. After the
-developer answers Layer 2, review the responses and probe for gaps:
-- "You described the happy path as 3 steps — is there an intermediate
-  confirmation or validation between step 2 and 3?"
-- "You mentioned it creates X — who can see X? Is there a visibility rule?"
-- "The exit point is [Y] — what happens if the user navigates away mid-flow?"
+5. **Checkpoint — present the draft to the developer:**
+   > "Here's the spec. Review each EARS requirement — are they accurate?
+   > Any missing states or error cases? Anti-requirements to add?"
 
-Loop at least once. Present your improved understanding and ask the developer
-to confirm or correct. The goal is to get from a rough sketch to a precise
-behavioral description before moving to Layer 3.
+   This is the most important checkpoint. Loop until the developer confirms.
 
-#### Layer 3 — Edge Cases & Error States (proactive discovery)
-
-Based on the developer's Layer 1 and Layer 2 answers, **proactively generate
-a list of likely edge cases and error states** before asking open-ended
-questions. Present them for the developer to review:
-
-> "Based on what you've described, here are edge cases and error states I'd
-> expect. For each, tell me: in scope, out of scope, or 'hadn't thought of
-> that — let's discuss'."
-
-Then ask the open-ended questions for anything not already covered:
-
-10. **What can go wrong?** — Network failures, invalid input, empty states,
-    permission issues, race conditions. For each: what should happen?
-11. **Loading / async states** — What does the user or system experience
-    while waiting for a response?
-12. **Degraded operation** — Should this work offline, with partial data,
-    or in a degraded mode? How should it degrade?
-13. **Concurrency** — Can multiple actors or processes interact with this
-    simultaneously? (e.g., two users editing, parallel requests, etc.)
-
-**Proactive discovery rule:** The developer should not have to invent edge
-cases from scratch. The LLM proposes based on the feature type, the codebase
-patterns found in Phase 0, and common failure modes for similar features.
-The developer's job is to review, confirm, and add anything domain-specific
-that the LLM couldn't anticipate.
-
-#### Layer 4 — Constraints & Non-Requirements (conditional)
-
-Ask these only if relevant based on earlier answers:
-
-14. **Anti-requirements** — What does this feature explicitly NOT do?
-    (Crucial for preventing scope creep and LLM hallucination.)
-15. **Performance constraints** — Any latency, throughput, memory, or size
-    requirements?
-16. **Accessibility / compliance** — Any accessibility, i18n, regulatory, or
-    security considerations?
-17. **Existing patterns to match** — Reference a similar feature in the
-    codebase that this should feel consistent with?
-
-#### Layer 5 — Testing Intent (always ask, adapt to project testing docs)
-
-**Before asking questions**, run Smart Document Discovery for testing-related
-documents (TESTING.md, test strategy files, test READMEs). If testing docs
-exist, synthesize their guidance and present it:
-
-> "I found your project's testing docs at `./docs/TESTING.md`. Here's what
-> they prescribe: [summary]. I'll use these as the baseline for the test
-> strategy. Do you want to override anything for this feature?"
-
-Then ask, adapting questions based on what the testing docs already cover:
-
-18. **What's critical to test?** — Which behaviors absolutely must have
-    automated tests?
-19. **What's NOT worth testing?** — Trivial boilerplate, layout, framework
-    behavior, etc.
-20. **Existing test patterns** — Is there a test file or test style in this
-    area of the codebase we should match?
-
-If NO testing docs exist, use these questions to establish a default testing
-strategy for this feature, and note the absence — the developer may want to
-create project-level testing docs based on the patterns established here.
+6. **Save:** Write `<slug>-SPEC.md` to the spec folder.
 
 ### Handling Partial Input
 
-The developer might arrive with a half-formed spec, a Jira ticket, a Slack
-thread, or a detailed prompt that already answers many discovery questions.
-**Always run the full pipeline regardless** — but use the provided input to
-pre-fill answers and accelerate each step.
+The developer may arrive with a Jira ticket, design doc, Slack thread, or
+detailed prompt that already answers many questions.
 
 1. Extract all available answers from what they provided.
-2. At each discovery layer, present the pre-filled answers:
-   "Based on what you shared, here's what I have for [Layer N]..."
-3. Ask the developer to **verify or go deeper** on the pre-filled answers,
-   then ask the remaining unanswered questions.
-4. Do NOT skip layers — even if the input seems comprehensive, there are
-   almost always gaps in edge cases, constraints, or testing intent.
-
-If the developer says "skip discovery" or "I know what I want," present the
-Discovery Summary with what you have and flag the gaps. Let them decide
-whether to fill them or proceed with the gaps noted as Open Questions. But
-recommend completing the full pipeline — the spec persistence makes it worth
-the investment.
-
-### Discovery Output Format
-
-After the Q&A, summarize the raw answers in a structured block at the top
-of the spec:
-
-```markdown
-## Discovery Summary
-
-- **Project / Stack:** [project name, language, framework]
-- **Area:** [module/screen/service]
-- **Type:** [new feature | modification | bugfix]
-- **User goal:** [one sentence]
-- **API surface:** [endpoints/mutations/services involved, or "none"]
-- **Entry:** [how user/caller gets here]
-- **Happy path:** [numbered steps]
-- **Exit:** [where user/caller goes after, or resulting system state]
-- **Error states:** [list]
-- **Anti-requirements:** [what this does NOT do]
-- **Test focus:** [what must be tested]
-```
-
-### Checkpoint 1
-
-Present the Discovery Summary. Ask:
-> "Here's what I captured. Does this cover everything? Anything missing or wrong?"
-
-Do NOT proceed to Phase 2 until the developer confirms.
-
-Once confirmed, save the full discovery output as `<feature-slug>-DISCOVER.md`
-in the spec folder. Include all layer answers, the structured Discovery Summary,
-and any notes from the iteration loops.
+2. Present a pre-populated discovery summary with your recommended answers.
+3. Ask the developer to verify, then probe the gaps depth-first.
+4. Don't skip topics — even comprehensive input usually has gaps in edge
+   cases, error handling, or constraints.
 
 ---
 
-## Phase 2: SPECIFY
+## Phase 02-PLAN
 
-### Pre-Phase: Smart Document Discovery for Specification
-
-Run Smart Document Discovery focused on architecture docs, existing specs, and
-domain documentation. Synthesize any relevant context that should inform the
-requirements (e.g., existing API contracts, domain terminology, architectural
-constraints).
-
-### Purpose
-Transform discovery answers into a precise, testable specification using EARS
-notation and formal-methods-flavored contracts. The spec describes BEHAVIOR,
-not implementation. No tech-stack-specific code or patterns belong here.
+Derives a concrete implementation plan from the approved spec.
 
 ### Execution
 
-Read the template at `SPEC_TEMPLATE.md` (in the same directory as this skill)
-and the completed example at `EXAMPLE_SPEC.md` for reference. Fill each
-section based on the discovery answers.
+1. **Load phase instructions:**
+   Read `${CLAUDE_SKILL_DIR}/references/02-PLAN.md` for detailed guidance.
 
-#### EARS Requirements
+2. **Re-read the approved SPEC.** Explore the codebase for implementation
+   patterns, existing utilities, and conventions relevant to the plan.
 
-Every behavioral requirement MUST be written in EARS notation:
+3. **Draft the PLAN:** Component breakdown, task checklist, suggested order,
+   and key implementation decisions not covered by the spec. Every plan item
+   must trace to one or more `R#` or `INV-#` references.
 
-| Pattern | Keyword | Template | Use When |
-|---------|---------|----------|----------|
-| Ubiquitous | (none) | The `<system>` shall `<response>` | Always-true constraints |
-| Event-driven | **When** | **When** `<trigger>`, the `<system>` shall `<response>` | User actions, API calls, events |
-| State-driven | **While** | **While** `<precondition>`, the `<system>` shall `<response>` | Mode-dependent behavior |
-| Unwanted | **If/Then** | **If** `<bad thing>`, **then** the `<system>` shall `<response>` | Error handling |
-| Complex | Combined | **While** `<pre>`, **when** `<trigger>`, the `<system>` shall `<response>` | Multi-condition behavior |
+4. **Checkpoint:**
+   > "Here's the implementation plan. Want to reorder anything? Any tasks
+   > missing or too large? Any decisions you want to make upfront?"
 
-**Rules for writing EARS requirements:**
-- Each requirement is ONE sentence.
-- Use domain language from the codebase and the developer's own words.
-- Be specific about the response — "display an error banner with the message
-  from the API" not "show an error".
-- Number them sequentially: R1, R2, R3...
-- Group by: Happy Path, Error Handling, State-dependent, Constraints.
+5. **Save:** Write `<slug>-PLAN.md` to the spec folder.
 
-#### State Model
+6. **Context-break checkpoint:**
+   After saving, output this block verbatim — do not paraphrase it:
 
-For any feature with more than two meaningful states, define:
+   ---
+   > **Context checkpoint.** SPEC and PLAN are saved. If this session has been long, this is a good moment to clear context before the TEST phase.
+   >
+   > To continue in a fresh session, paste this prompt:
+   >
+   > ```
+   > Continue spec-driven development.
+   >
+   > Approved artifacts saved:
+   > - `specs/<folder>/<slug>-SPEC.md`
+   > - `specs/<folder>/<slug>-PLAN.md`
+   >
+   > Run Phase 03-TEST from the think-discover-define skill:
+   > - Read `references/03-TEST.md` for guidance
+   > - Re-read the approved SPEC and PLAN
+   > - Derive one or more validation items per requirement or invariant (no orphan validation)
+   > - Present the draft for review, refine, then save `<slug>-TEST.md`
+   > ```
+   >
+   > Or reply **"continue"** to proceed in this session.
+   ---
 
-- **States**: All possible states, with description and observable behavior
-- **Transitions**: Which state can lead to which, and what triggers it
-- **Invariants**: Properties that must ALWAYS hold regardless of state
-- **Impossible transitions**: Transitions that must NEVER happen
-
-Format as a simple table. Only produce a full diagram if the developer asks.
-
-#### Contracts (Pre/Post Conditions)
-
-For each significant operation (API call, database write, state transition,
-command, etc.), define:
-
-```markdown
-### Operation: `OperationName`
-
-**Preconditions** (must be true before calling):
-- [condition]
-
-**Postconditions (success):**
-- [what must be true after successful completion]
-
-**Postconditions (failure):**
-- [what must be true after failure — typically: previous state preserved]
-```
-
-#### Anti-Requirements
-
-Explicit list of what this feature does NOT do. Just as important as the
-requirements — they prevent scope creep and give Claude Code clear boundaries.
-
-#### Dependencies
-
-List what must exist before this feature can be built: APIs that need to be
-available, data migrations, feature flags, other features that must ship
-first, third-party services. Use checkboxes so the developer can track them.
-
-#### Open Questions
-
-Capture anything unresolved after discovery that must be answered before
-implementation begins. These are not blockers for the spec — they're
-blockers for coding. Mark them resolved with `[x]` as answers come in.
-
-### Checkpoint 2
-
-Present the full spec. Ask:
-> "Here's the spec. Review each EARS requirement — are they accurate?
-> Any missing states or error cases? Anti-requirements to add?
-> Dependencies or open questions I missed?"
-
-This is the most important checkpoint. Loop until the developer confirms.
+   Wait for the developer's response before proceeding to Phase 03-TEST.
 
 ---
 
-## Phase 3: PLAN
+## Phase 03-TEST
 
-### Pre-Phase: Smart Document Discovery for Planning
-
-Run Smart Document Discovery focused on architecture docs, project structure
-conventions, and any implementation guidelines. This is the phase where
-tech-stack details matter most — synthesize everything relevant to making
-implementation decisions.
-
-### Purpose
-Derive a concrete implementation plan from the spec. THIS is where tech-stack
-details appear — not in the spec. The plan maps spec requirements to specific
-files, components, and patterns in the codebase.
+Derives validation items directly from the EARS requirements and invariants.
 
 ### Execution
 
-Read `EXAMPLE_PLAN.md` for a completed reference. Analyze the spec and the
-relevant parts of the codebase, then produce:
+1. **Load phase instructions:**
+   Read `${CLAUDE_SKILL_DIR}/references/03-TEST.md` for detailed guidance.
 
-#### 1. Component Breakdown
-List which files/modules need changes. For each:
-- File path (or "new file: suggested path")
-- What changes: new code, modification, or deletion
-- Which spec requirements this addresses (reference R1, R2, etc.)
+2. **Re-read the approved SPEC and PLAN.** Check for project testing docs
+   or conventions discovered earlier.
 
-#### 2. Task Checklist
-Break work into small, independently verifiable tasks. Each task:
-- Has a clear "done" condition tied to a spec requirement
-- Is small enough to implement in one Claude Code prompt
-- References specific EARS requirements it fulfills
-- (After Phase 4) Cross-references the test cases that verify it
+3. **Draft the TEST strategy:** One or more validation items per requirement
+   or invariant. Use executable tests by default, but switch to benchmarks,
+   audit/manual checks, or inspection-only proofs when those are the correct
+   verification method. Every validation item traces to the spec. No orphan
+   validation.
 
-Format:
-```markdown
-- [ ] **T1: [short title]** — [what to do]. Fulfills: R1, R3. Tests: TC-1, TC-4.
-  Done when: [specific verifiable condition]
-```
+4. **Checkpoint:**
+   > "Here is the derived validation strategy. Do the validation types fit the
+   > requirements? Any gaps, over-testing, or missing pass criteria?"
 
-#### 3. Suggested Order (not rigid)
-Suggest an implementation order based on dependencies. Explicitly note
-which tasks are independent and can be done in any order:
+5. **Save:** Write `<slug>-TEST.md` to the spec folder.
 
-```
-T1 → T2 → T3 (sequential, each depends on previous)
-       ↘ T4 → T5 (parallel track, can start after T1)
-```
+6. **Implementation handoff (mandatory context break):**
+   After saving, output this block verbatim — do not paraphrase it. Fill in
+   all placeholders (`<feature-name>`, `<folder>`, `<slug>`) with the actual
+   values for this session:
 
-#### 4. Key Decisions
-Flag implementation decisions NOT covered by the spec that need developer
-input during coding. These are typically tech-stack-specific choices.
-
-### Checkpoint 3
-
-Present the plan. Ask:
-> "Here's the implementation plan. Want to reorder anything? Any tasks
-> missing or too large? Any decisions you want to make upfront?"
-
----
-
-## Phase 4: TEST
-
-### Pre-Phase: Smart Document Discovery for Testing
-
-Run Smart Document Discovery focused on testing-related documents. If testing
-docs were already surfaced in Layer 5, reuse that synthesis. If new docs are
-found, update the context. The test strategy MUST conform to the project's
-testing conventions if they exist.
-
-### Purpose
-Derive a test strategy directly from the EARS requirements. Every test traces
-back to a spec requirement. **Every test case that connects to a requirement
-is necessary** — do not prioritize or tier tests. No orphan tests. No tests
-for trivial things unless the developer explicitly wants them.
-
-### Execution
-
-Read `EXAMPLE_TEST.md` for a completed reference.
-
-#### Test Case Derivation Rules
-
-For each EARS requirement, derive test cases using this mapping:
-
-| EARS Pattern | Test Structure |
-|-------------|---------------|
-| **When** `<trigger>`, shall `<response>` | Setup: trigger condition. Assert: response. |
-| **While** `<pre>`, shall `<response>` | Setup: establish precondition. Assert: response holds. |
-| **If** `<bad>`, **then** shall `<response>` | Setup: cause bad condition. Assert: response. |
-| **Complex** | One test per condition combination. |
-
-#### Test Naming Convention
-
-Default format (adapt casing to the project's convention):
-
-```
-test_[subject]_[condition]_[expectedOutcome]
-```
-
-**Rules:**
-- Name reads as a sentence: "test [that] subject [when/with] condition
-  [then] expected outcome"
-- No `testThat`, `should`, `verify` prefixes — just the behavior
-- Concise but descriptive (aim for under ~60 characters)
-- Adapt casing to project convention (camelCase, snake_case, etc.)
-
-If the project has an existing test naming convention, defer to it.
-
-#### Test Case Format
-
-```markdown
-### TC-1: `test_functionName` → R1
-**Setup:** [what state to establish]
-**Action:** [what to trigger]
-**Assert:** [what must be true after]
-```
-
-#### No Test Prioritization
-
-Every test case that traces to an EARS requirement or invariant is necessary.
-Do NOT assign priority tiers (P0/P1/P2) or suggest that some tests are
-optional. If a requirement is in the spec, its test cases are required.
-
-The developer can choose to descope requirements from the spec — but that's a
-spec decision, not a testing decision. If a requirement exists, it gets tested.
-
-If the project has testing docs that define a testing strategy (found during
-Smart Document Discovery), follow their conventions for test organization,
-coverage expectations, and tooling.
-
-#### What NOT to Test
-
-Explicitly list exclusions, referencing Phase 1 answers. Common exclusions:
-- Pure layout/styling (unless accessibility-critical)
-- Simple property forwarding with no logic
-- Framework/library behavior (not your code)
-- Boilerplate or generated code
-
-### Checkpoint 4
-
-Present the test strategy. Ask:
-> "Here are the derived test cases. Are the names clear? Any cases
-> missing? Anything here that's not worth testing?"
+   ---
+   > **All spec phases complete.**
+   >
+   > **Clear your context before implementing.** Starting implementation here risks carrying discovery noise and stale intermediate reasoning into a coding session. The spec artifacts are self-contained — a clean session is strictly better.
+   >
+   > Paste this prompt in a new session to start implementing:
+   >
+   > ```
+   > Implement <feature-name> per the approved spec.
+   >
+   > All spec artifacts are at `specs/<folder>/`:
+   > - `<slug>-SPEC.md` — EARS requirements, state model, contracts, anti-requirements
+   > - `<slug>-PLAN.md` — component breakdown, ordered task checklist, key decisions
+   > - `<slug>-TEST.md` — derived validation items (executable tests, benchmarks, audits, inspection-only proofs)
+   >
+   > Before writing any code:
+   > 1. Read all three artifacts in full
+   > 2. Read any testing or architecture guidelines referenced in the spec
+   > 3. Confirm your understanding of the task order in PLAN.md
+   >
+   > Start with task T1 from PLAN.md unless I say otherwise.
+   >
+   > Rules:
+   > - Follow the spec strictly — it is the contract
+   > - If implementation reveals a contradiction or gap, stop and flag it before deviating
+   > - Update the spec explicitly if requirements change; never silently deviate
+   > - Every piece of code you write should be traceable to a spec requirement or invariant
+   > ```
+   ---
 
 ---
 
 ## File Naming & Output Location
 
-All generated files go into a dedicated folder named with the feature or ticket
-number. The folder name format is:
+All generated files go into a dedicated folder:
 
 ```
 specs/<ticket-number>--<feature-slug>/
@@ -626,107 +240,67 @@ specs/<ticket-number>--<feature-slug>/
 Examples:
 - `specs/PROJ-1234--task-comments/`
 - `specs/GH-42--user-auth-flow/`
-- `specs/add-comment/` (if no ticket number exists)
+- `specs/add-comment/` (no ticket number)
 
-Use `kebab-case` for the feature slug. If no ticket/issue number exists, use
-just the feature slug. If a `specs/` directory doesn't exist yet, create it
-at the project root.
+Use `kebab-case` for the feature slug. Create the `specs/` directory at the
+project root if it doesn't exist.
 
 ### Output Files
 
-Every output file is prefixed with the feature slug so the task is identifiable
-from the filename alone — even if the file is moved, copied, or shows up in a
-search result outside its folder.
+- `<slug>-SPEC.md` — Context, discovery summary, EARS requirements, state model, contracts
+- `<slug>-PLAN.md` — Implementation plan with task checklist
+- `<slug>-TEST.md` — Validation strategy with all derived validation items
 
-Save outputs incrementally as each phase completes (do not wait until all
-phases are done):
-
-- `<feature-slug>-ORIENT.md` — Phase 0 findings: project context, detected patterns, file manifest
-- `<feature-slug>-DISCOVER.md` — Phase 1 output: full discovery summary, all layer answers
-- `<feature-slug>-SPEC.md` — Phase 2 output: EARS requirements, state model, contracts
-- `<feature-slug>-PLAN.md` — Phase 3 output: implementation plan with task checklist
-- `<feature-slug>-TEST.md` — Phase 4 output: test strategy with all test cases
-
-Examples for a feature slug `task-comments`:
-- `specs/PROJ-1234--task-comments/task-comments-ORIENT.md`
-- `specs/PROJ-1234--task-comments/task-comments-SPEC.md`
-
-### Starting Implementation
-
-Once all phases are complete, present the developer with the implementation
-starting point:
-> "Spec is locked. All outputs saved to `specs/<folder>/`. Ready to start
-> implementing. Want me to begin with task T1, or a different one?"
-
-During implementation, **always reference the spec** when making decisions.
-If the developer asks for something that contradicts the spec, flag it:
-> "This would change the behavior from R3. Want to update the spec first,
-> or proceed with the change?"
+Save each file as its phase completes — don't wait for all phases.
 
 ---
 
-## Spec Drift Handling
+## Drift Handling
 
-Specs change. That's fine — the point is to change them *explicitly*, not
-silently. Because specs are persistent, keeping them accurate is important.
-Drift happens in three ways:
+Specs change. The point is to change them explicitly, not silently.
 
 **Developer-initiated drift** — the developer asks for something that
 contradicts the spec during implementation:
 1. Flag the contradiction: "This changes R3. The spec says X, you're
    asking for Y."
 2. Ask: "Want to update the spec, or is this a one-off exception?"
-3. If updating: edit the EARS requirement in SPEC.md, check if PLAN.md or
-   TEST.md need cascading changes, and note the change in a `## Change Log`
-   section at the bottom of SPEC.md.
+3. If updating: edit the EARS requirement in SPEC.md. Check if PLAN.md
+   or TEST.md need cascading changes.
 
 **Discovery drift** — implementation reveals something the spec didn't
-anticipate (new edge case, unexpected API behavior, missing state):
+anticipate:
 1. Stop implementation on the affected task.
-2. Propose a new EARS requirement or state transition to cover the gap.
-3. Add it to SPEC.md after developer approval.
-4. Derive any new test cases and add them to TEST.md.
-
-**File manifest drift** — the source files referenced by the spec have changed
-since the spec was written:
-1. The Smart Document Discovery step (which runs before every phase) checks
-   the file manifest in the ORIENT output against current file states.
-2. If referenced files have changed, flag the specific sections that may be
-   affected: "File `src/api/tasks.ts` has changed since this spec was written.
-   Requirements R5-R7 reference this file's error handling."
-3. Ask the developer whether to update the spec or acknowledge the change.
-4. Update the file manifest baseline after resolution.
-
-**Change Log format** (append to bottom of SPEC.md when changes occur):
-```markdown
-## Change Log
-
-- **[date]** R3 updated: changed from "display toast" to "display inline
-  error" per developer feedback during T4 implementation.
-- **[date]** R12 added: discovered that API returns 429 on rate limit,
-  added retry-with-backoff requirement.
-```
+2. Propose a new EARS requirement or state transition.
+3. Add to SPEC.md after developer approval.
+4. Derive any new validation items.
 
 Never silently deviate from the spec. If you catch yourself implementing
 something the spec doesn't describe, stop and spec it first.
 
 ---
 
-## Quick Reference: EARS Cheat Sheet
+## Traceability Checks
 
-```
-UBIQUITOUS:   The <system> shall <response>
-EVENT:        When <trigger>, the <system> shall <response>
-STATE:        While <precondition>, the <system> shall <response>
-UNWANTED:     If <bad thing>, then the <system> shall <response>
-COMPLEX:      While <pre>, when <trigger>, the <system> shall <response>
-```
+Run these checks before approving each artifact:
 
-## Quick Reference: Formal Contracts
+- Every `R#` and every `INV-#` appears in `PLAN.md`.
+- Every `R#` and every `INV-#` appears in `TEST.md` with at least one
+  validation item.
+- No PLAN task references observable behavior that is missing from the SPEC.
+  If a task changes what a user, caller, or downstream system can observe,
+  that behavior must already exist as a requirement, invariant, or
+  anti-requirement.
+- Contracts refine operations, but they do not introduce new observable
+  behavior. If a contract clause affects externally visible behavior, promote
+  it into a requirement or invariant first.
+- If traceability is incomplete, stop and repair the artifact before moving
+  to the next phase.
 
-```
-PRECONDITION:  What must be true BEFORE an operation
-POSTCONDITION: What must be true AFTER an operation succeeds
-INVARIANT:     What must ALWAYS be true regardless of state
-IMPOSSIBLE:    Transitions or states that must NEVER occur
-```
+---
+
+## Read-Only Rule
+
+During all phases, the codebase is read-only. Use `Read`, `Glob`, `Grep`,
+and read-only `Bash` commands to explore. The only files you create or modify
+are the three spec artifacts in the `specs/` folder. Never modify source code,
+tests, configs, or any other project files during spec generation.

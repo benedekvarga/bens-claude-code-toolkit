@@ -1,24 +1,38 @@
-# Feature Spec: Add Comment to Task
-
-> **Branch:** `feature/task-comments`
 > **Date:** 2026-04-12
 > **Status:** Approved
 
 ---
 
+## Project Context
+
+### Tech Stack (from `./package.json`, `./CLAUDE.md`)
+- Acme Task Manager — stack-independent example (works for any client or backend)
+
+### Conventions (from `./CLAUDE.md`, `./docs/ARCHITECTURE.md`)
+- Feature modules in `task-detail/`
+- Co-located tests alongside business logic
+
+### Testing (from `./docs/TESTING.md`)
+- Unit tests for all business logic
+- Integration tests for API layer
+- No snapshot tests
+
+---
+
 ## Discovery Summary
 
-- **Project / Stack:** Acme Task Manager (stack-independent — this spec works for any client or backend)
+- **Project / Stack:** Acme Task Manager, stack-independent example
 - **Area:** Task Detail module, comments subsystem
 - **Type:** New Feature
+- **State model tier:** Full
 - **User goal:** The user can add a text comment to a task to communicate with collaborators.
-- **API surface:** New endpoint: `POST /tasks/{taskId}/comments`. Existing: `GET /tasks/{taskId}` (already returns task data, will need to include comments).
+- **API surface:** New: `POST /tasks/{taskId}/comments`. Existing: `GET /tasks/{taskId}` (will include comments).
 - **Entry:** User is viewing a task detail screen/page
 - **Happy path:** 1. User views task → 2. Types comment in input field → 3. Taps/clicks "Send" → 4. Comment appears in the comment list with author and timestamp → 5. Input field clears
 - **Exit:** User remains on task detail. Comment is persisted and visible to all collaborators.
-- **Error states:** Network failure on send, empty comment submission, task deleted while commenting, user loses edit permission
-- **Anti-requirements:** Does NOT support editing or deleting comments. Does NOT support attachments or rich text. Does NOT support @mentions or notifications.
-- **Test focus:** Comment submission flow, error handling, input validation, optimistic update behavior
+- **Error states:** Network failure on send, network failure while loading comments, empty comment submission, task deleted while commenting, user loses edit permission
+- **Anti-requirements:** Does NOT support editing/deleting comments, attachments, rich text, @mentions, or notifications.
+- **Validation focus:** Comment submission flow, error handling, input validation, optimistic update behavior
 
 ---
 
@@ -36,16 +50,17 @@
 - **R5:** If the comment submission fails due to a network error, then the system shall display an error indicator on the failed comment and offer a "Retry" action.
 - **R6:** If the comment submission fails because the task no longer exists (404), then the system shall display a message that the task was deleted and disable further comment input.
 - **R7:** If the comment submission fails because the user lost permission (403), then the system shall display a message that the user no longer has access and disable further comment input.
+- **R8:** If the comment list fails to load due to a network error, then the system shall display an inline comments-section error with a retry action while leaving the rest of the task detail usable.
 
 ### State-Dependent
 
-- **R8:** While a comment is being submitted (API call in flight), the system shall show the comment in the list as "sending" and disable the send button.
-- **R9:** While the comment list is loading, the system shall display a loading indicator in the comments section (not block the full task detail).
+- **R9:** While a comment is being submitted (API call in flight), the system shall show the comment in the list as "sending" and disable the send button.
+- **R10:** While the comment list is loading, the system shall display a loading indicator in the comments section (not block the full task detail).
 
 ### Constraints
 
-- **R10:** The system shall enforce a maximum comment length of 2000 characters and display a character counter when the user is within 200 characters of the limit.
-- **R11:** The comment list shall support pagination or lazy loading if there are more than 50 comments.
+- **R11:** The system shall enforce a maximum comment length of 2000 characters and display a character counter when the user is within 200 characters of the limit.
+- **R12:** The comment list shall support pagination or lazy loading if there are more than 50 comments.
 
 ---
 
@@ -55,9 +70,10 @@
 
 | State | Description | Observable Behavior |
 |-------|-------------|---------------------|
-| `loading` | Comments are being fetched | Loading indicator in comments section; task detail is still visible |
+| `loading` | Comments are being fetched | Loading indicator in comments section; task detail still visible |
 | `loaded` | Comments fetched successfully | Comment list and input field visible |
 | `empty` | Loaded but no comments exist | Empty state message ("No comments yet") and input field visible |
+| `loadError` | Comment fetch failed | Inline comments-section error with retry; rest of task detail remains usable |
 | `submitting` | A comment is being sent | New comment shows as "sending"; send button disabled |
 | `submitError` | Comment failed to send | Failed comment shows error indicator with retry option |
 | `disabled` | Task deleted or user lost access | Input field disabled; message explains why |
@@ -68,6 +84,8 @@
 |------|----|---------|
 | `loading` | `loaded` | API returns comments (1+) |
 | `loading` | `empty` | API returns zero comments |
+| `loading` | `loadError` | API returns network error |
+| `loadError` | `loading` | User taps "Retry" |
 | `loaded` / `empty` | `submitting` | User submits a valid comment |
 | `submitting` | `loaded` | API confirms creation |
 | `submitting` | `submitError` | API returns error |
@@ -83,7 +101,7 @@
 
 ### Impossible Transitions
 
-- `loading` → `submitting` (cannot submit a comment before the list loads)
+- `loading` → `submitting` (cannot submit before the list loads)
 - `disabled` → `submitting` (cannot submit when the feature is disabled)
 - `submitting` → `empty` (submitting means at least one comment exists or is pending)
 
@@ -147,27 +165,12 @@
 - [x] `GET /tasks/{taskId}` endpoint exists and returns task detail data
 - [x] User authentication and permission model is in place
 - [ ] `POST /tasks/{taskId}/comments` endpoint is deployed and accessible
-- [ ] `GET /tasks/{taskId}` response schema updated to include `comments` array (or separate `GET /tasks/{taskId}/comments` endpoint exists)
+- [ ] `GET /tasks/{taskId}` response schema updated to include `comments` array (or separate endpoint exists)
 
 ---
 
 ## Open Questions
 
-- [x] Should we show an optimistic comment immediately, or wait for the API? → Show optimistically with "sending" state (R8).
-- [x] What happens if the user scrolls up while a comment is submitting? → Comment appears at the bottom; auto-scroll to it on success.
+- [x] Should we show an optimistic comment immediately, or wait for the API? → Show optimistically with "sending" state (R9).
 - [ ] Is there a rate limit on comment creation? → Need to check with backend team.
-
----
-
-## File Manifest
-
-| File | Last Known State | Referenced By |
-|------|-----------------|---------------|
-| `task-detail/TaskDetail` | baseline (initial spec) | R3 |
-| `api/tasks` | baseline (initial spec) | R1, R5, R6, R7 (API error handling) |
-
----
-
-## Change Log
-
-<!-- No changes yet — spec is freshly approved. -->
+  - Classification: Assumption-backed
