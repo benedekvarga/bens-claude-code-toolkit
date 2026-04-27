@@ -1,6 +1,6 @@
 ---
 name: think-discover-define
-description: Spec-driven feature development. Guides the developer through interactive discovery, generates a formal-ish spec with EARS requirements and state contracts, derives an implementation plan, and produces a validation strategy. Invoke manually with /think-discover-define or /spec when starting a new feature, modifying complex behavior, scoping a bug fix, or planning an implementation.
+description: Spec-driven feature development. Guides the developer through interactive discovery, generates a formal-ish spec with EARS requirements and state contracts, derives an implementation plan, and produces a validation strategy. Invoke manually with /think-discover-define when starting a new feature, modifying complex behavior, scoping a bug fix, or planning an implementation.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 metadata:
   version: 2.2.0

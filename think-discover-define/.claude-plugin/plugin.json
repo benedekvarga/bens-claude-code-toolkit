@@ -1,7 +1,7 @@
 {
   "name": "think-discover-define",
-  "version": "1.0.2",
-  "description": "Spec-driven, structured feature development skill: asks discovery questions, generates a formal spec with EARS requirements and state contracts, derives an implementation plan, and produces a test strategy.",
+  "version": "2.2.0",
+  "description": "Spec-driven feature development. Guides through interactive discovery, generates a formal spec with EARS requirements and state contracts, derives an implementation plan, and produces a validation strategy. Invoke with /think-discover-define.",
   "author": {
     "name": "Benedek Varga",
     "url": "https://github.com/benedekvarga"
@@ -9,5 +9,11 @@
   "homepage": "https://github.com/benedekvarga/bens-claude-code-toolkit",
   "repository": "https://github.com/benedekvarga/bens-claude-code-toolkit",
   "license": "MIT",
-  "keywords": ["spec-driven-development", "sdd", "formal-methods", "planning", "discovery"]
+  "keywords": [
+    "spec-driven-development",
+    "sdd",
+    "formal-methods",
+    "planning",
+    "discovery"
+  ]
 }

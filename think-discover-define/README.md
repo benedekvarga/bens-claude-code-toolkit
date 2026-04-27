@@ -31,31 +31,29 @@ Then use it by typing `/think-discover-define` in Claude Code.
 
 The skill will:
 
-1. Silently orient itself — reads the codebase to understand existing structure before asking anything
-2. Ask discovery questions across five layers: scope, behavior, edge cases, constraints, and testing approach
-3. Generate a formal spec with EARS requirements and pre/post contracts
-4. Produce an implementation plan with tasks mapped to requirements
-5. Derive test cases directly from the spec
+1. Scan the codebase for existing docs, architecture decisions, and relevant context before asking anything
+2. Run interactive discovery — questions with recommended answers based on codebase analysis
+3. Generate a formal spec (01-SPEC) with EARS requirements and pre/post contracts
+4. Derive an implementation plan (02-PLAN) with tasks mapped to requirements
+5. Produce a validation strategy (03-TEST) with test cases derived directly from the spec
 
-Each phase ends at a checkpoint — Claude stops and waits for your approval before continuing.
+Each phase ends at a checkpoint — the skill stops and waits for your approval before continuing.
 
 ---
 
 ## Pipeline
 
 ```
-ORIENT → DISCOVER → SPECIFY → PLAN → TEST
+01-SPEC  ──►  02-PLAN  ──►  03-TEST
 ```
 
-Each phase produces a persistent file in `specs/<ticket>--<feature-slug>/`. Each phase ends at a checkpoint — Claude stops and waits for approval before continuing.
+Each phase produces a persistent file in `specs/<feature-slug>/`. Each phase ends at a checkpoint — the skill stops and waits for approval before continuing.
 
 | Phase | Output | What it produces |
 |---|---|---|
-| 0 · Orient | `<slug>-ORIENT.md` | Silent codebase recon before asking anything |
-| 1 · Discover | `<slug>-DISCOVER.md` | Five-layer Q&A: scope, behavior, edge cases, constraints, testing |
-| 2 · Specify | `<slug>-SPEC.md` | EARS requirements, state model, pre/post contracts |
-| 3 · Plan | `<slug>-PLAN.md` | Task checklist mapped to R-numbers |
-| 4 · Test | `<slug>-TEST.md` | Test cases derived directly from requirements |
+| 1 · Spec | `01-SPEC.md` | Discovery Q&A, EARS requirements, state model, pre/post contracts |
+| 2 · Plan | `02-PLAN.md` | Task checklist with exact file paths, mapped to R-numbers |
+| 3 · Test | `03-TEST.md` | Test cases derived directly from requirements |
 
 Every requirement (R-number) traces to a task (T-number) and a test case (TC-number). If a requirement changes, the chain breaks visibly.
 
